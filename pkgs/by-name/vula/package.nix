@@ -38,6 +38,7 @@ in
         pydbus
         pynacl
         pyroute2
+        pystray
         pyyaml
         qrcode
         schema
