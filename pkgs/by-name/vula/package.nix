@@ -1,5 +1,6 @@
 {
   lib,
+  libappindicator-gtk3,
   python3,
   fetchgit,
   highctidh,
@@ -28,6 +29,10 @@ in
         --replace "IMAGE_BASE_PATH = '/usr/share/icons/vula/'" "IMAGE_BASE_PATH = '$out/${python3.sitePackages}/usr/share/icons/vula/'"
     '';
 
+    buildInputs = [
+      libappindicator-gtk3
+    ];
+
     propagatedBuildInputs =
       (with python3.pkgs; [
         click
@@ -36,6 +41,7 @@ in
         packaging
         pillow
         pydbus
+        pygobject3
         pynacl
         pyroute2
         pystray
