@@ -48,6 +48,8 @@ in
     nativeCheckInputs = with python3.pkgs; [pytestCheckHook];
 
     postInstall = ''
+      mkdir -p $out/share/icons
+      cp -r $src/misc/images/ $out/share/icons
     '';
 
     meta = {
