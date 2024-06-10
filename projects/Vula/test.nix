@@ -82,6 +82,7 @@ in {
     virtualisation.memorySize = 4096;
     users.users.admin.isNormalUser = true;
     users.users.admin.extraGroups = ["vula-admins"];
+    users.users.admin.password = "";
     services.displayManager.autoLogin.enable = true;
     services.displayManager.autoLogin.user = "admin";
     services.xserver = {
