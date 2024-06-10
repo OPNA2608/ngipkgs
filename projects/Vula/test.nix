@@ -79,9 +79,11 @@ in {
   '';
 
   interactive.nodes.b = {
+    virtualisation.memorySize = 4096;
     users.users.admin.isNormalUser = true;
     users.users.admin.extraGroups = ["vula-admins"];
-
+    services.displayManager.autoLogin.enable = true;
+    services.displayManager.autoLogin.user = "admin";
     services.xserver = {
       enable = true;
       displayManager.gdm.enable = true;
