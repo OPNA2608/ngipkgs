@@ -49,7 +49,7 @@ in
 
     postInstall = ''
       mkdir -p $out/share/icons
-      cp -r $src/misc/images/ $out/share/icons
+      cp -r $src/misc/images/*.png $out/share/icons
     '';
 
     meta = {
