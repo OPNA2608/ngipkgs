@@ -80,6 +80,7 @@ in {
 
   interactive.nodes.b = {
     virtualisation.memorySize = 4096;
+    virtualisation.cores = 3;
     users.users.admin.isNormalUser = true;
     users.users.admin.extraGroups = ["vula-ops"];
     users.users.admin.password = "";
