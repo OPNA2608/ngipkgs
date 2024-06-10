@@ -47,6 +47,9 @@ in
     nativeBuildInputs = [wrapGAppsHook];
     nativeCheckInputs = with python3.pkgs; [pytestCheckHook];
 
+    postInstall = ''
+    '';
+
     meta = {
       description = "Automatic local network encryption";
       homepage = "https://vula.link/";
