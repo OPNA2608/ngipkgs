@@ -1,4 +1,5 @@
 {
+  gobject-introspection,
   lib,
   libappindicator-gtk3,
   libayatana-appindicator,
@@ -30,10 +31,6 @@ in
         --replace "IMAGE_BASE_PATH = '/usr/share/icons/vula/'" "IMAGE_BASE_PATH = '$out/${python3.sitePackages}/usr/share/icons/vula/'"
     '';
 
-    buildInputs = [
-      libayatana-appindicator
-    ];
-
     propagatedBuildInputs =
       (with python3.pkgs; [
         click
@@ -54,7 +51,8 @@ in
       ])
       ++ [highctidh];
 
-    nativeBuildInputs = [wrapGAppsHook];
+    buildInputs = [libayatana-appindicator];
+    nativeBuildInputs = [wrapGAppsHook gobject-introspection];
     nativeCheckInputs = with python3.pkgs; [pytestCheckHook];
 
     #postInstall = ''
