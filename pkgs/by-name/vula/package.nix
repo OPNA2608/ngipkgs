@@ -1,6 +1,7 @@
 {
   lib,
   libappindicator-gtk3,
+  libayatana-appindicator,
   python3,
   fetchgit,
   highctidh,
@@ -30,7 +31,7 @@ in
     '';
 
     buildInputs = [
-      libappindicator-gtk3
+      libayatana-appindicator
     ];
 
     propagatedBuildInputs =
