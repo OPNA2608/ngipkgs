@@ -24,6 +24,8 @@ in
     # without removing `pyproject.toml` we don't end up with an executable.
     postPatch = ''
       rm pyproject.toml
+      substituteInPlace vula/frontend/constants.py \
+        --replace "IMAGE_BASE_PATH = '/usr/share/icons/vula/'" "IMAGE_BASE_PATH = '$out/share/icons/'"
     '';
 
     propagatedBuildInputs =
