@@ -28,12 +28,6 @@ in {
     users.users.user.isNormalUser = true;
     users.users.admin.isNormalUser = true;
     users.users.admin.extraGroups = ["vula-managers"];
-
-    services.xserver = {
-      enable = true;
-      displayManager.gdm.enable = true;
-      desktopManager.gnome.enable = true;
-    };
   };
 
   nodes.b.imports = [
@@ -87,5 +81,11 @@ in {
   interactive.nodes.b = {
     users.users.admin.isNormalUser = true;
     users.users.admin.extraGroups = ["vula-admins"];
+
+    services.xserver = {
+      enable = true;
+      displayManager.gdm.enable = true;
+      desktopManager.gnome.enable = true;
+    };
   };
 }
