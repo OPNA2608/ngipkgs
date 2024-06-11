@@ -21,6 +21,7 @@
     ;
   inherit
     (pkgs)
+    python3
     writeScript
     writeTextFile
     coreutils
@@ -87,6 +88,7 @@
       Exec=${exec-vula-tray}
       StartupNotify=false
       NoDisplay=true
+      Icon=${cfg.package}/${python3.sitePackages}/usr/share/icons/vula_gui_icon.png
     '';
   };
 in {
