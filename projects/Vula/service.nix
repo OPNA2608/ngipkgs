@@ -129,20 +129,21 @@ in {
       group = cfg.systemGroup;
     };
 
-    createGisStampFilesAutostart = pkgs.writeTextFile rec {
-      name = "create-g-i-s-stamp-files";
-      destination = "/etc/xdg/autostart/${name}.desktop";
-      text = ''
-        [Desktop Entry]
-        Type=Application
-        Name=Vula tray
-        Exec='vula tray'
-        StartupNotify=false
-        NoDisplay=true
-      '';
-    };
-
-    environment.systemPackages = [cfg.package];
+    environment.systemPackages = [
+      cfg.package
+      (pkgs.writeTextFile rec {
+        name = "vula-tray-desktop-file";
+        destination = "/etc/xdg/autostart/${name}.desktop";
+        text = ''
+          [Desktop Entry]
+          Type=Application
+          Name=Vula tray
+          Exec='vula tray'
+          StartupNotify=false
+          NoDisplay=true
+        '';
+      })
+    ];
 
     services.dbus.packages =
       [
