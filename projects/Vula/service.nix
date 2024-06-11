@@ -21,6 +21,7 @@
     ;
   inherit
     (pkgs)
+    writeScript
     writeTextFile
     coreutils
     callPackage
@@ -68,6 +69,21 @@
       Type = "dbus";
     };
     wantedBy = ["multi-user.target"];
+  };
+
+  exec-vula-tray = writeScript "exec-vula-tray" "${getExe cfg.package} tray";
+
+  vula-tray-desktop-autostart = pkgs.writeTextFile rec {
+    name = "vula-tray-desktop-file";
+    destination = "/etc/xdg/autostart/${name}.desktop";
+    text = ''
+      [Desktop Entry]
+      Type=Application
+      Name=Vula tray
+      Exec=${exec-vula-tray}
+      StartupNotify=false
+      NoDisplay=true
+    '';
   };
 in {
   options.services.vula = {
@@ -128,21 +144,10 @@ in {
       isSystemUser = true;
       group = cfg.systemGroup;
     };
-    
+
     environment.systemPackages = [
       cfg.package
-      (pkgs.writeTextFile rec {
-        name = "vula-tray-desktop-file";
-        destination = "/etc/xdg/autostart/${name}.desktop";
-        text = ''
-          [Desktop Entry]
-          Type=Application
-          Name=Vula tray
-          Exec=${cfg.package}/bin/vula tray
-          StartupNotify=false
-          NoDisplay=true
-        '';
-      })
+      vula-tray-desktop-autostart
     ];
 
     services.dbus.packages =
