@@ -80,7 +80,7 @@ in {
 
   interactive.nodes.b = {
     virtualisation.memorySize = 4096;
-    virtualisation.cores = 4;
+    virtualisation.cores = 3;
     users.users.joe.isNormalUser = true;
     users.users.joe.password = "";
     users.users.admin.isNormalUser = true;
