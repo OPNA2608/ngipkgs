@@ -71,7 +71,9 @@
     wantedBy = ["multi-user.target"];
   };
 
-  exec-vula-tray = writeScript "exec-vula-tray" "${getExe cfg.package} tray";
+  exec-vula-tray = writeScript "exec-vula-tray" ''
+    groups | grep --quiet "\b${cfg.operatorsGroup}\b" && ${getExe cfg.package} tray || true
+  '';
 
   vula-tray-desktop-autostart = pkgs.writeTextFile rec {
     name = "vula-tray-desktop-file";
