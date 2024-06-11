@@ -28,7 +28,7 @@ in
     postPatch = ''
       rm pyproject.toml
       substituteInPlace vula/frontend/constants.py \
-        --replace "IMAGE_BASE_PATH = '/usr/share/icons/vula/'" "IMAGE_BASE_PATH = '$out/${python3.sitePackages}/usr/share/icons/vula/'"
+        --replace "IMAGE_BASE_PATH = '/usr/share/icons/vula/'" "IMAGE_BASE_PATH = '$out/share/icons/vula/'"
     '';
 
     propagatedBuildInputs =
@@ -55,10 +55,10 @@ in
     nativeBuildInputs = [wrapGAppsHook gobject-introspection];
     nativeCheckInputs = with python3.pkgs; [pytestCheckHook];
 
-    #postInstall = ''
-    #  mkdir -p $out/share/icons
-    #  cp -r $src/misc/images/*.png $out/share/icons
-    #'';
+    postInstall = ''
+      mkdir -p $out/share/icons
+      cp -r $src/misc/images/*.png $out/share/icons
+    '';
 
     meta = {
       description = "Automatic local network encryption";
