@@ -87,7 +87,7 @@
       Exec=${exec-vula-tray}
       StartupNotify=false
       NoDisplay=true
-      Icon=${cfg.package}/usr/share/icons/vula_gui_icon.png
+      Icon=${cfg.package}/share/icons/vula_gui_icon.png
     '';
   };
 in {
