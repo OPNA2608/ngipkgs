@@ -138,7 +138,7 @@ in {
           [Desktop Entry]
           Type=Application
           Name=Vula tray
-          Exec='vula tray'
+          Exec=${cfg.package}/bin/vula tray
           StartupNotify=false
           NoDisplay=true
         '';
