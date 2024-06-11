@@ -128,6 +128,10 @@ in {
       isSystemUser = true;
       group = cfg.systemGroup;
     };
+    
+    environment.pathsToLink = [
+      "/etc/xdg/autostart"
+    ];
 
     environment.systemPackages = [
       cfg.package
