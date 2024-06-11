@@ -129,10 +129,6 @@ in {
       group = cfg.systemGroup;
     };
     
-    environment.pathsToLink = [
-      "/etc/xdg/autostart"
-    ];
-
     environment.systemPackages = [
       cfg.package
       (pkgs.writeTextFile rec {
