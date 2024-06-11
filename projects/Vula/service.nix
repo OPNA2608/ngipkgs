@@ -72,7 +72,9 @@
   };
 
   exec-vula-tray = writeScript "exec-vula-tray" ''
-    groups | grep --quiet "\b${cfg.operatorsGroup}\b" && ${getExe cfg.package} tray || true
+    if groups | grep --quiet "\b${cfg.operatorsGroup}\b"; then
+      ${getExe cfg.package} tray
+    fi
   '';
 
   vula-tray-desktop-autostart = pkgs.writeTextFile rec {
