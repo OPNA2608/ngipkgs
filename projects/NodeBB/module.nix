@@ -78,15 +78,25 @@ in {
               ''
                 set -euo pipefail
 
+                # Expected to exist
+                mkdir -p ${cfg.settings.upload_path}/{category,files,profile,sounds,system}
+
+                # User-writable copy of <nodebb>/lib/node_modules/nodebb/public/src, so copying it doesn't error out on store's missing write perms
+                rm -rf ${cfg.settings.publicSrcDir}
+                cp -R --no-preserve=all ${cfg.package}/lib/node_modules/nodebb/public/src ${cfg.settings.publicSrcDir}
+
               ''
               + lib.optionalString (!configured) ''
+                # Only use for initial setup, will immediately get overwritten
                 cp --no-preserve=all ${configFile} ${varlibPath "config.json"}
+
                 nodebb setup --config=${varlibPath "config.json"}
+
                 touch ${configuredMarker}
               ''
               + ''
 
-                nodebb start --config=${varlibPath "config.json"}
+                exec nodebb start --config=${varlibPath "config.json"}
               '';
           }
         );
@@ -96,7 +106,7 @@ in {
             lib.optionalString (!configured) "!"
           } -f ${configuredMarker}";
 
-          Type = "oneshot";
+          Type = "forking";
           WorkingDirectory = cfg.package;
           ReadWritePaths = [(varlibPath "")];
 

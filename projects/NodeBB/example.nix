@@ -22,7 +22,6 @@ in {
         database = nodebbDatabase;
       };
 
-      logDir = varlibPath "logs";
       logFile = varlibPath "logs/output.log";
       upload_path = varlibPath "uploads";
 
@@ -34,6 +33,12 @@ in {
           "admin:email" = "admin@example.org";
         };
       in (builtins.toJSON (self // {"admin:password:confirm" = self.${"admin:password"};}));
+
+      # Nix-added options.
+      pidFile = varlibPath "pidfile";
+      logDir = varlibPath "logs";
+      dataDir = varlibPath "build";
+      publicSrcDir = varlibPath "public-src-copy";
     };
   };
 

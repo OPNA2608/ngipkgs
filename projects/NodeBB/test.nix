@@ -18,5 +18,7 @@
 
   testScript = {nodes, ...}: ''
     start_all()
+
+    server.sleep(120)
   '';
 }
