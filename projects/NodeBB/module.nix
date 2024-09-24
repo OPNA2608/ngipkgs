@@ -44,6 +44,19 @@ in {
       '';
     };
 
+    setupSettings = lib.mkOption {
+      type = settingsFormat.type;
+      example = {
+        "admin:username" = "admin";
+        "admin:password" = "admin-pw";
+        "admin:password:confirm" = "admin-pw";
+        "admin:email" = "admin@example.org";
+      };
+      description = ''
+        First-time setup settings for NodeBB.
+      '';
+    };
+
     waitForDatabaseService = lib.mkOption {
       type = lib.types.nullOr lib.types.str;
       default =
@@ -85,18 +98,23 @@ in {
                 rm -rf ${cfg.settings.publicSrcDir}
                 cp -R --no-preserve=all ${cfg.package}/lib/node_modules/nodebb/public/src ${cfg.settings.publicSrcDir}
 
+                # Needed for webpack to be happy(?)
+                rm -f ${varlibPath "node_modules"}
+                ln -s ${cfg.package}/lib/node_modules/nodebb/node_modules ${varlibPath "node_modules"}
               ''
               + lib.optionalString (!configured) ''
                 # Only use for initial setup, will immediately get overwritten
                 cp --no-preserve=all ${configFile} ${varlibPath "config.json"}
 
-                nodebb setup --config=${varlibPath "config.json"}
+                # nodebb --config=${varlibPath "config.json"} --setup=${lib.strings.escapeShellArg ("\"" + (lib.strings.replaceStrings ["\""] ["\\\""] (builtins.toJSON cfg.setupSettings)) + "\"")} -d -l setup
+                env setup=${lib.strings.escapeShellArg (builtins.toJSON cfg.setupSettings)} nodebb --config=${varlibPath "config.json"} -d -l setup
 
                 touch ${configuredMarker}
               ''
               + ''
 
-                exec nodebb start --config=${varlibPath "config.json"}
+                #exec nodebb --config=${varlibPath "config.json"} -d -l start
+                exec nodebb --config=${varlibPath "config.json"} -d start
               '';
           }
         );

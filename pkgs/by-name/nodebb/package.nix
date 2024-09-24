@@ -37,7 +37,7 @@ buildNpmPackage rec {
 
     # Many places want to write runtime data into build output, introduce custom option for redirecting to config-defined location
 
-    substituteInPlace src/meta/cacheBuster.js src/meta/js.js src/languages.js webpack.installer.js test/emailer.js test/build.js \
+    substituteInPlace src/meta/cacheBuster.js src/meta/js.js src/languages.js webpack.installer.js test/emailer.js test/build.js src/constants.js \
       --replace-fail "'use strict';" "'use strict'; const nconf = require('nconf');"
 
     substituteInPlace src/meta/cacheBuster.js src/meta/build.js src/meta/js.js src/meta/css.js src/routes/meta.js src/routes/index.js test/mocks/databasemock.js \
@@ -55,7 +55,7 @@ buildNpmPackage rec {
     substituteInPlace src/meta/build.js \
       --replace-fail "path.resolve(__dirname, '../../build/" "path.resolve(nconf.get('dataDir') || (path.join(__dirname, '../../build')), '"
 
-    substituteInPlace webpack.installer.js \
+    substituteInPlace webpack.installer.js webpack.common.js \
       --replace-fail "path.resolve(__dirname, 'build/" "path.resolve(nconf.get('dataDir') || (path.join(__dirname, 'build')), '"
 
     substituteInPlace webpack.common.js \
@@ -78,6 +78,10 @@ buildNpmPackage rec {
     # Don't force logFile to be within build output dir
     substituteInPlace loader.js \
       --replace-fail "path.join(__dirname, nconf.get('logFile') || 'logs/output.log')" "nconf.get('logFile') || path.join(__dirname, 'logs/output.log')"
+
+    # Don't force config to be within build output dir
+    substituteInPlace src/cli/index.js \
+      --replace-fail "path.resolve(paths.baseDir, nconf.get('config') || 'config.json')" "nconf.get('config') || path.resolve(paths.baseDir, 'config.json')"
 
     # Also use new variables as application-wide constants (when they're actually used)
     # And use config when passed

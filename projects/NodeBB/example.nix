@@ -25,6 +25,7 @@ in {
       logFile = varlibPath "logs/output.log";
       upload_path = varlibPath "uploads";
 
+      /*
       # This is only needed for first-time setup, make sure to delete this afterwards!
       setup = let
         self = {
@@ -33,6 +34,7 @@ in {
           "admin:email" = "admin@example.org";
         };
       in (builtins.toJSON (self // {"admin:password:confirm" = self.${"admin:password"};}));
+      */
 
       # Nix-added options.
       pidFile = varlibPath "pidfile";
@@ -40,6 +42,15 @@ in {
       dataDir = varlibPath "build";
       publicSrcDir = varlibPath "public-src-copy";
     };
+
+    setupSettings = let
+      self = {
+        "admin:username" = "admin";
+        "admin:password" = "admin-pw"; # not secure, don't use this as-is
+        "admin:email" = "admin@example.org";
+      };
+    in
+      self // {"admin:password:confirm" = self.${"admin:password"};};
   };
 
   services.postgresql = {
