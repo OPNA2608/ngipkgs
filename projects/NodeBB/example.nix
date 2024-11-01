@@ -4,13 +4,16 @@
   lib,
   ...
 }: let
-  nodebbDatabase = "nodebb";
+  nodebbDatabaseName = "nodebb";
+  nodebbDatabasePassword = "nodebb-pw";
+  generateJsonFile = (pkgs.formats.json {}).generate;
   varlibPath = x: "/var/lib/nodebb/" + x;
 in {
   services.nodebb = {
     enable = true;
 
-    settings = rec {
+    # This is NOT secure! Consider using a secrets management mechanism instead.
+    settings = generateJsonFile "config.json" rec {
       url = "http://127.0.0.1:4560";
       secret = "cookie-sessions-hash-secret"; # not secure, don't use this as-is
 
@@ -18,23 +21,12 @@ in {
       ${database} = {
         host = "localhost";
         port = config.services.postgresql.settings.port;
-        password = "nodebb-pw"; # not secure, don't use this as-is
-        database = nodebbDatabase;
+        database = nodebbDatabaseName;
+        password = nodebbDatabasePassword; # not secure, don't use this as-is
       };
 
       logFile = varlibPath "logs/output.log";
       upload_path = varlibPath "uploads";
-
-      /*
-      # This is only needed for first-time setup, make sure to delete this afterwards!
-      setup = let
-        self = {
-          "admin:username" = "admin";
-          "admin:password" = "admin-pw"; # not secure, don't use this as-is
-          "admin:email" = "admin@example.org";
-        };
-      in (builtins.toJSON (self // {"admin:password:confirm" = self.${"admin:password"};}));
-      */
 
       # Nix-added options.
       pidFile = varlibPath "pidfile";
@@ -43,6 +35,7 @@ in {
       publicSrcDir = varlibPath "public-src-copy";
     };
 
+    # This is NOT secure! Consider using a secrets management mechanism instead.
     setupSettings = let
       self = {
         "admin:username" = "admin";
@@ -50,25 +43,28 @@ in {
         "admin:email" = "admin@example.org";
       };
     in
-      self // {"admin:password:confirm" = self.${"admin:password"};};
+      generateJsonFile "setup.json" (self // {"admin:password:confirm" = self.${"admin:password"};});
+
+    waitForDatabaseService = "postgresql";
   };
 
   services.postgresql = {
     enable = true;
-    ensureDatabases = [config.services.nodebb.settings.postgres.database];
+    ensureDatabases = [nodebbDatabaseName];
     ensureUsers = [
       {
         name = "nodebb";
-        ensureDBOwnership = nodebbDatabase == "nodebb";
+        ensureDBOwnership = nodebbDatabaseName == "nodebb";
       }
     ];
     authentication = ''
-      host ${nodebbDatabase} nodebb all md5
+      host ${nodebbDatabaseName} nodebb all md5
     '';
 
-    # This may need to be done interactively, or merged into an existing script, based on your setup
+    # This is NOT secure! Consider doing this interactively instead.
+    # This may need to be done interactively, or merged into an existing script, based on your setup & database choice.
     initialScript = pkgs.writeText "init-nodebb-postgresql-user" ''
-      CREATE USER nodebb PASSWORD '${config.services.nodebb.settings.postgres.password}';
+      CREATE USER nodebb PASSWORD '${nodebbDatabasePassword}';
     '';
   };
 }

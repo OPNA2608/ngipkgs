@@ -6,8 +6,8 @@
 }: let
   cfg = config.services.nodebb;
   settingsFormat = pkgs.formats.json {};
-  configFile = settingsFormat.generate "config.json" cfg.settings;
   varlibPath = x: "/var/lib/nodebb/" + x;
+  setupConv = setupSettings: lib.strings.escapeShellArg (builtins.toJSON setupSettings);
 in {
   options.services.nodebb = {
     enable = lib.mkEnableOption ''
@@ -22,51 +22,56 @@ in {
     };
 
     settings = lib.mkOption {
-      type = settingsFormat.type;
-      example = {
-        url = "http://127.0.0.1:4560";
-        secret = "cookie-sessions-hash-secret";
-        database = "postgres";
-        postgres = {
-          host = "127.0.0.1";
-          port = "4561";
-          password = "nodebb-pw";
-          database = "nodebb-db";
-        };
-
-        logFile = varlibPath "logs/output.log";
-        upload_path = varlibPath "uploads";
-      };
+      type = lib.types.path;
+      example = "/etc/my-secrets/nodebb-base-config.json";
       description = ''
-        Configuration for NodeBB, see
+        Initial configuration for NodeBB, see
         <link xlink:href="https://docs.nodebb.org/configuring/config" />
-        for supported settings.
+        for supported base settings.
+
+        Must be a string with a path to a JSON file, whose contents will be read at runtime.
+
+        Warning: Custom settings for internal functions that you need to set (support for these is patched into NodeBB via
+        the Nix packaging):
+        - pidFile: A file where the pid of the currently-running NodeBB instance is kept & tracked
+        - logDir: A directory where NodeBB can write its log files into
+        - dataDir: A directory where NodeBB can write its runtime-produced data files into
+        - publicSrcDir: A directory where NodeBB can put/use a read-writable copy of its public/src directory in/from
+
+        Warning: Due to NodeBB rewriting its own config during initial setup, any changes to this option will not be applied
+        to NodeBB once the service has been successfully set up once at runtime.
+        Please resort to manually managing NodeBB's ${varlibPath "config.json"} at that point!
       '';
     };
 
-    setupSettings = lib.mkOption {
-      type = settingsFormat.type;
-      example = {
-        "admin:username" = "admin";
-        "admin:password" = "admin-pw";
-        "admin:password:confirm" = "admin-pw";
-        "admin:email" = "admin@example.org";
-      };
+    setupSettings = lib.mkOption rec {
+      type = lib.types.path; # path, either to a file for copying into the store or a string with a path that will exist at runtime
+      example = "/etc/my-secrets/nodebb-setup-config.json";
       description = ''
-        First-time setup settings for NodeBB.
+        Admin settings only needed for the automatic first-time setup of NodeBB.
+
+        Must be a string with a path to a file, whose contents will be read at runtime.
+
+        For example, the file is expected to contain something like the following:
+        ${setupConv {
+          "admin:username" = "admin";
+          "admin:password" = "admin-pw";
+          "admin:password:confirm" = "admin-pw";
+          "admin:email" = "admin@example.org";
+        }}
       '';
     };
 
     waitForDatabaseService = lib.mkOption {
       type = lib.types.nullOr lib.types.str;
-      default =
-        {
-          postgres = "postgresql.service";
-          mongo = "mongodb.service";
-          # Redis setup is not straight-forward, cannot assume name
-        }
-        .${cfg.settings.database}
-        or null;
+      default = null;
+      example = "postgresql";
+      description = ''
+        A systemd unit for the used database type that must be running before NodeBB is launched. ".service" is automatically
+        appended to the specified name.
+
+        If null, not waiting for another service.
+      '';
     };
   };
 
@@ -81,43 +86,35 @@ in {
 
         wantedBy = ["multi-user.target"];
 
-        script = lib.getExe (
-          pkgs.writeShellApplication {
-            name = "nodebb${lib.optionalString (!configured) "-initial"}-script";
+        path = [cfg.package] ++ (with pkgs; [jq]);
 
-            runtimeInputs = [cfg.package] ++ (with pkgs; []);
+        script =
+          ''
+            set -euo pipefail
 
-            text =
-              ''
-                set -euo pipefail
+            # Expected to exist
+            mkdir -p "$(jq -r ".upload_path" "${cfg.settings}")"/{category,files,profile,sounds,system}
 
-                # Expected to exist
-                mkdir -p ${cfg.settings.upload_path}/{category,files,profile,sounds,system}
+            # User-writable copy of <nodebb>/lib/node_modules/nodebb/public/src, so copying it doesn't error out on store's missing write perms
+            rm -rf "$(jq -r ".publicSrcDir" "${cfg.settings}")"
+            cp -R --no-preserve=all ${cfg.package}/lib/node_modules/nodebb/public/src "$(jq -r ".publicSrcDir" "${cfg.settings}")"
 
-                # User-writable copy of <nodebb>/lib/node_modules/nodebb/public/src, so copying it doesn't error out on store's missing write perms
-                rm -rf ${cfg.settings.publicSrcDir}
-                cp -R --no-preserve=all ${cfg.package}/lib/node_modules/nodebb/public/src ${cfg.settings.publicSrcDir}
+            # Needed for webpack to be happy(?)
+            rm -f ${varlibPath "node_modules"}
+            ln -s ${cfg.package}/lib/node_modules/nodebb/node_modules ${varlibPath "node_modules"}
+          ''
+          + lib.optionalString (!configured) ''
+            # Only use for initial setup, will immediately get overwritten
+            cp --no-preserve=all "${cfg.settings}" ${varlibPath "config.json"}
 
-                # Needed for webpack to be happy(?)
-                rm -f ${varlibPath "node_modules"}
-                ln -s ${cfg.package}/lib/node_modules/nodebb/node_modules ${varlibPath "node_modules"}
-              ''
-              + lib.optionalString (!configured) ''
-                # Only use for initial setup, will immediately get overwritten
-                cp --no-preserve=all ${configFile} ${varlibPath "config.json"}
+            env setup="$(cat "${cfg.setupSettings}")" nodebb --config=${varlibPath "config.json"} -d -l setup
 
-                # nodebb --config=${varlibPath "config.json"} --setup=${lib.strings.escapeShellArg ("\"" + (lib.strings.replaceStrings ["\""] ["\\\""] (builtins.toJSON cfg.setupSettings)) + "\"")} -d -l setup
-                env setup=${lib.strings.escapeShellArg (builtins.toJSON cfg.setupSettings)} nodebb --config=${varlibPath "config.json"} -d -l setup
+            touch ${configuredMarker}
+          ''
+          + ''
 
-                touch ${configuredMarker}
-              ''
-              + ''
-
-                #exec nodebb --config=${varlibPath "config.json"} -d -l start
-                exec nodebb --config=${varlibPath "config.json"} -d start
-              '';
-          }
-        );
+            nodebb --config=${varlibPath "config.json"} -d start &
+          '';
 
         serviceConfig = {
           ExecCondition = "${pkgs.coreutils}/bin/test ${
@@ -133,24 +130,29 @@ in {
           Group = "nodebb";
         };
       }
-      // lib.optionalAttrs (config.services.nodebb.waitForDatabaseService != null) {
-        requires = [config.services.nodebb.waitForDatabaseService];
-        after = [config.services.nodebb.waitForDatabaseService];
+      // lib.optionalAttrs (config.services.nodebb.waitForDatabaseService != null) (
+        let
+          serviceName = "${config.services.nodebb.waitForDatabaseService}.service";
+        in {
+          requires = [serviceName];
+          after = [serviceName];
+        }
+      );
+  in
+    lib.mkIf cfg.enable {
+      systemd.services = {
+        nodebb-initial = mkNodeBBService false;
+        nodebb = mkNodeBBService true;
       };
-  in {
-    systemd.services = {
-      nodebb-initial = mkNodeBBService false;
-      nodebb = mkNodeBBService true;
-    };
 
-    users.users.nodebb = {
-      isNormalUser = true;
-      description = "NodeBB user";
-      group = "nodebb";
-      home = varlibPath "";
+      users.users.nodebb = {
+        isNormalUser = true;
+        description = "NodeBB user";
+        group = "nodebb";
+        home = varlibPath "";
+      };
+      users.groups.nodebb = {};
     };
-    users.groups.nodebb = {};
-  };
 
   meta.maintainers = [];
 }

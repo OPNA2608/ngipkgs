@@ -40,15 +40,23 @@
         };
       };
 
-      environment.systemPackages = with pkgs; [
-        firefox
-      ];
+      environment.systemPackages = with pkgs; [firefox];
     };
   };
 
   testScript = {nodes, ...}: ''
     start_all()
 
-    server.sleep(120)
+    # Wait for initial setup to run & be successful
+    server.wait_for_unit("nodebb-initial.service")
+    server.wait_for_console_text("NodeBB is now listening on:")
+
+    # Stop it
+    server.systemctl("stop nodebb-initial.service")
+    server.sleep(5) # no good way to wait for service shutdown?
+
+    # Switch to non-initial service
+    server.systemctl("start nodebb.service")
+    server.wait_for_console_text("NodeBB is now listening on:")
   '';
 }
