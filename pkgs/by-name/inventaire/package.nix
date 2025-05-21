@@ -10,14 +10,6 @@
   tsx,
 }:
 
-let
-  visual-viewport = fetchFromGitHub {
-    owner = "WICG";
-    repo = "visual-viewport";
-    rev = "44deaba64b1c2c474bf5a4ece07eefa93b2fb028";
-    hash = "sha256-uMNqmMBDmz2zmPYjpVuQeCw4DsSm8DYhC33jOpMQj+w=";
-  };
-in
 buildNpmPackage rec {
   pname = "inventaire";
   version = "3.0.1-beta";
@@ -51,13 +43,41 @@ buildNpmPackage rec {
       --replace-fail '  pnpm i' '  echo [Nix] Skipping: pnpm i' \
       --replace-fail '  npm i' '  echo [Nix] Skipping:  npm i' \
 
-    #substituteInPlace scripts/build \
-    #  --replace-fail './scripts/check_build_environment.sh' 'echo "[Nix] Not running: ./scripts/check_build_environment.sh"'
+    # tsc is not happy with the way all of these elasticsearch types get imported
 
-    #  --replace-fail \
-    #    'curl -sk https://raw.githubusercontent.com/WICG/visual-viewport/44deaba/polyfill/visualViewport.js >> ./vendor/visual_viewport_polyfill.js' \
-    #    'cat ${visual-viewport}/polyfill/visualViewport.js >> ./vendor/visual_viewport_polyfill.js' \
-    #  --replace-fail 'rm -rf ./node_modules/.cache' '# rm -rf ./node_modules/.cache'
+    substituteInPlace server/controllers/items/lib/search_users_items.ts \
+      --replace-fail \
+        "import type { QueryDslBoolQuery, QueryDslQueryContainer } from '@elastic/elasticsearch/lib/api/types.js'" \
+        "import type { estypes } from '@elastic/elasticsearch'" \
+      --replace-fail 'QueryDslBoolQuery' 'estypes.QueryDslBoolQuery' \
+      --replace-fail 'QueryDslQueryContainer' 'estypes.QueryDslQueryContainer' \
+
+    substituteInPlace server/controllers/search/lib/social_query_builder.ts \
+      --replace-fail \
+        "import type { QueryDslQueryContainer, SearchRequest } from '@elastic/elasticsearch/lib/api/types.js'" \
+        "import type { estypes } from '@elastic/elasticsearch'" \
+      --replace-fail 'QueryDslQueryContainer' 'estypes.QueryDslQueryContainer' \
+      --replace-fail 'SearchRequest' 'estypes.SearchRequest' \
+
+    substituteInPlace server/lib/elasticsearch.ts \
+      --replace-fail \
+        "import type { SearchRequest, SearchResponse, SearchHitsMetadata } from '@elastic/elasticsearch/lib/api/types.js'" \
+        "import type { estypes } from '@elastic/elasticsearch'" \
+      --replace-fail 'SearchRequest' 'estypes.SearchRequest' \
+      --replace-fail 'SearchResponse' 'estypes.SearchResponse' \
+      --replace-fail 'SearchHitsMetadata' 'estypes.SearchHitsMetadata' \
+
+    substituteInPlace server/lib/search_by_distance.ts \
+      --replace-fail \
+        "import type { SearchRequest } from '@elastic/elasticsearch/lib/api/types.js'" \
+        "import type { estypes } from '@elastic/elasticsearch'" \
+      --replace-fail 'SearchRequest' 'estypes.SearchRequest' \
+
+    substituteInPlace server/lib/search_by_position.ts \
+      --replace-fail \
+        "import type { SearchRequest } from '@elastic/elasticsearch/lib/api/types.js'" \
+        "import type { estypes } from '@elastic/elasticsearch'" \
+      --replace-fail 'SearchRequest' 'estypes.SearchRequest' \
   '';
 
   makeCacheWritable = true;
@@ -66,7 +86,33 @@ buildNpmPackage rec {
     tsx
   ];
 
-  preBuild = ''
-    ls -ahl node_modules/@elastic/elasticsearch/lib/api/types.js
+  buildInputs = [
+    tsx
+  ];
+
+  postInstall = ''
+    cp -r dist $out/lib/node_modules/inventaire/
+
+    # Fix borked symlinks
+    for candidate in $out/lib/node_modules/inventaire/dist/*; do
+      if [ -L "$candidate" ]; then
+        linkName="$(basename "$candidate")"
+        rm "$candidate"
+        if [ -e "$(dirname "$candidate")/../''${linkName}" ]; then
+          ln -vs ../"$linkName" "$candidate"
+        else
+          mkdir "$candidate"
+        fi
+      fi
+    done
+
+    # Launcher
+    mkdir -p $out/bin
+    cat <<EOF >$out/bin/inventaire
+    #!/bin/sh
+
+    ${lib.getExe tsx} $out/lib/node_modules/inventaire/dist/server/server.js
+    EOF
+    chmod +x $out/bin/inventaire
   '';
 }
