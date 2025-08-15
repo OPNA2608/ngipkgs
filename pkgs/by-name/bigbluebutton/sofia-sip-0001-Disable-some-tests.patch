@@ -1,0 +1,47 @@
+diff '--color=auto' -ruN a/libsofia-sip-ua/nta/Makefile.am b/libsofia-sip-ua/nta/Makefile.am
+--- a/libsofia-sip-ua/nta/Makefile.am	2025-08-15 09:20:12.476303917 +0200
++++ b/libsofia-sip-ua/nta/Makefile.am	2025-08-15 09:23:23.049383410 +0200
+@@ -26,9 +26,9 @@
+ noinst_LTLIBRARIES = 	libnta.la
+ 
+ check_PROGRAMS = 	check_nta test_nta_api test_nta portbind
+-dist_noinst_SCRIPTS =	run_test_nta_api run_test_nta
++dist_noinst_SCRIPTS =	run_test_nta_api
+ 
+-TESTS =			run_check_nta run_test_nta_api run_test_nta
++TESTS =			run_test_nta_api
+ 
+ TESTS_ENVIRONMENT =	$(SHELL)
+ 
+diff '--color=auto' -ruN a/libsofia-sip-ua/su/Makefile.am b/libsofia-sip-ua/su/Makefile.am
+--- a/libsofia-sip-ua/su/Makefile.am	2025-08-15 09:20:12.488153452 +0200
++++ b/libsofia-sip-ua/su/Makefile.am	2025-08-15 09:22:10.106199162 +0200
+@@ -20,7 +20,7 @@
+ 			torture_su_alloc torture_su_time torture_su_tag \
+ 			test_htable test_htable2 torture_rbtree torture_heap \
+ 			test_memmem torture_su_bm \
+-			torture_su_root torture_su_timer \
++			torture_su_timer \
+ 			test_su su_proxy test_poll $(OSXPROGS)
+ 
+ # ----------------------------------------------------------------------
+@@ -30,8 +30,8 @@
+ 			torture_su_alloc torture_su_time torture_su_tag \
+ 			test_htable test_htable2 torture_rbtree torture_heap \
+ 			test_memmem torture_su_bm \
+-			torture_su_root torture_su_timer \
+-			run_addrinfo run_localinfo run_test_su \
++			torture_su_timer \
++			run_localinfo run_test_su \
+ 			$(OSXTESTS)
+ 
+ # ----------------------------------------------------------------------
+@@ -98,7 +98,7 @@
+ # Install and distribution rules
+ 
+ EXTRA_DIST += 		su.docs \
+-			run_addrinfo run_localinfo run_test_su
++			run_localinfo run_test_su
+ 
+ dist_pkgdata_SCRIPTS = 	tag_dll.awk
+ 

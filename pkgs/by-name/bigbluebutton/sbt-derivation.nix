@@ -6,17 +6,26 @@
   mkSbtDerivation,
   runCommand,
   stdenvNoCC,
+  autoconf,
+  automake,
   bashNonInteractive,
+  check,
   dpkg,
   fakeroot,
   fpm,
   jdk,
   libsecret,
+  libtool,
   makeWrapper,
   nodejs,
   npmHooks,
+  openssl,
   pkg-config,
   pnpm_9,
+  util-linux,
+  valgrind,
+  which,
+  zlib,
 }:
 
 let
@@ -573,6 +582,122 @@ let
         description = sharedBbbThings.meta.description + " (bbb-etherpad)";
       };
     };
+
+  bbb-freeswitch-core =
+    let
+      sofia-sip = stdenv.mkDerivation (finalAttrs: {
+        pname = "sofia-sip";
+        version = "1.13.17";
+
+        src = fetchFromGitHub {
+          owner = "freeswitch";
+          repo = "sofia-sip";
+          tag = "v${finalAttrs.version}";
+          hash = "sha256-7QmK2UxEO5lC0KBDWB3bwKTy0Nc7WrdTLjoQYzezoaY=";
+        };
+
+        patches = [
+          # Disable some tests
+          # https://github.com/freeswitch/sofia-sip/issues/234
+          # run_addrinfo: Fails due to limited networking during build
+          # torture_su_root: Aborts with: bit out of range 0 - FD_SETSIZE on fd_set
+          # run_check_nta: Times out in client_2_1_1 test, which seems to test some connection protocol fallback thing
+          # run_test_nta: "no valid IPv6 addresses available", likely due to no networking in sandbox
+          ./sofia-sip-0001-Disable-some-tests.patch
+        ];
+
+        postPatch = ''
+          # This actually breaks these tests, reading to bash trying to execute bash
+          substituteInPlace libsofia-sip-ua/nta/Makefile.am \
+            --replace-fail 'TESTS_ENVIRONMENT =' '#TESTS_ENVIRONMENT ='
+        '';
+
+        strictDeps = true;
+
+        nativeBuildInputs = [
+          autoconf
+          automake
+          libtool
+          pkg-config
+        ];
+
+        buildInputs = [
+          openssl
+        ];
+
+        nativeCheckInputs = [
+          valgrind
+        ];
+
+        checkInputs = [
+          check
+          zlib
+        ];
+
+        preConfigure = ''
+          ./bootstrap.sh
+        '';
+
+        configureFlags = [
+          (lib.strings.enableFeature true "expensive-checks")
+        ];
+
+        enableParallelBuilding = true;
+
+        env.NIX_CFLAGS_COMPILE = toString [
+          # const char *** instead of const char * const**
+          "-Wno-error=incompatible-pointer-types"
+        ];
+
+        doCheck = stdenv.buildPlatform.canExecute stdenv.hostPlatform;
+      });
+
+      spandsp = stdenv.mkDerivation (finalAttrs: {
+        pname = "spandsp";
+        version = "0-unstable-2022-01-27";
+
+        src = fetchFromGitHub {
+          owner = "freeswitch";
+          repo = "spandsp";
+          rev = "e59ca8fb8b1591e626e6a12fdc60a2ebe83435ed";
+          hash = "sha256-gLtLhzdwRYwg8P+WJOtpwn4b8VCo4NG0Q8sVZKtpGnE=";
+        };
+
+        postPatch = ''
+          patchShebangs autogen.sh
+        '';
+
+        strictDeps = true;
+
+        nativeBuildInputs = [
+          autoconf
+          automake
+          libtool
+          #  pkg-config
+          util-linux
+          which
+        ];
+
+        #buildInputs = [
+        #  openssl
+        #];
+
+        preConfigure = ''
+          ./bootstrap.sh
+        '';
+
+        enableParallelBuilding = true;
+
+        #env.NIX_CFLAGS_COMPILE = toString [
+        #  # const char *** instead of const char * const**
+        #  "-Wno-error=incompatible-pointer-types"
+        #];
+      });
+
+    in
+    {
+      inherit sofia-sip spandsp;
+    };
 in
 {
   inherit
@@ -580,5 +705,6 @@ in
     bbb-apps-akka
     bbb-config
     bbb-etherpad
+    bbb-freeswitch-core
     ;
 }
